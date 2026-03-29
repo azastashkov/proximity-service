@@ -1,0 +1,26 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'lbs-service'
+    metrics_path: '/actuator/prometheus'
+    dns_sd_configs:
+      - names: ['lbs-service']
+        type: 'A'
+        port: 8080
+
+  - job_name: 'business-service'
+    metrics_path: '/actuator/prometheus'
+    dns_sd_configs:
+      - names: ['business-service']
+        type: 'A'
+        port: 8081
+
+  - job_name: 'load-client'
+    metrics_path: '/metrics'
+    dns_sd_configs:
+      - names: ['load-client']
+        type: 'A'
+        port: 8082
+    scrape_interval: 5s

@@ -1,0 +1,254 @@
+{
+  "uid": "proximity-service",
+  "title": "Proximity Service",
+  "tags": ["proximity"],
+  "timezone": "browser",
+  "refresh": "5s",
+  "time": {"from": "now-15m", "to": "now"},
+  "schemaVersion": 36,
+  "version": 1,
+  "panels": [
+    {
+      "id": 1,
+      "title": "Request Rate (req/s)",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "targets": [
+        {
+          "expr": "rate(http_server_requests_seconds_count{application=~\"lbs-service|business-service\"}[1m])",
+          "legendFormat": "{{application}} {{method}} {{uri}}",
+          "datasource": "Prometheus",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "color": {"mode": "palette-classic"}
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {"mode": "multi"},
+        "legend": {"displayMode": "list", "placement": "bottom"}
+      }
+    },
+    {
+      "id": 2,
+      "title": "Request Latency p95",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{application=~\"lbs-service|business-service\"}[1m])) by (le, application, uri))",
+          "legendFormat": "p95 {{application}} {{uri}}",
+          "datasource": "Prometheus",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "color": {"mode": "palette-classic"}
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {"mode": "multi"},
+        "legend": {"displayMode": "list", "placement": "bottom"}
+      }
+    },
+    {
+      "id": 3,
+      "title": "Request Latency p99",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(http_server_requests_seconds_bucket{application=~\"lbs-service|business-service\"}[1m])) by (le, application, uri))",
+          "legendFormat": "p99 {{application}} {{uri}}",
+          "datasource": "Prometheus",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "color": {"mode": "palette-classic"}
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {"mode": "multi"},
+        "legend": {"displayMode": "list", "placement": "bottom"}
+      }
+    },
+    {
+      "id": 4,
+      "title": "Error Rate",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+      "targets": [
+        {
+          "expr": "rate(http_server_requests_seconds_count{application=~\"lbs-service|business-service\", status=~\"5..\"}[1m])",
+          "legendFormat": "{{application}} {{method}} {{uri}} {{status}}",
+          "datasource": "Prometheus",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "color": {"mode": "fixed", "fixedColor": "red"},
+          "custom": {"lineWidth": 2}
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {"mode": "multi"},
+        "legend": {"displayMode": "list", "placement": "bottom"}
+      }
+    },
+    {
+      "id": 5,
+      "title": "JVM Memory Usage (Heap)",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+      "targets": [
+        {
+          "expr": "jvm_memory_used_bytes{area=\"heap\", application=~\"lbs-service|business-service\"}",
+          "legendFormat": "{{application}} {{id}}",
+          "datasource": "Prometheus",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "color": {"mode": "palette-classic"}
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {"mode": "multi"},
+        "legend": {"displayMode": "list", "placement": "bottom"}
+      }
+    },
+    {
+      "id": 6,
+      "title": "JVM GC Pauses",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+      "targets": [
+        {
+          "expr": "rate(jvm_gc_pause_seconds_sum{application=~\"lbs-service|business-service\"}[1m])",
+          "legendFormat": "{{application}} {{action}} {{cause}}",
+          "datasource": "Prometheus",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "color": {"mode": "palette-classic"}
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {"mode": "multi"},
+        "legend": {"displayMode": "list", "placement": "bottom"}
+      }
+    },
+    {
+      "id": 7,
+      "title": "Active HTTP Connections",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 24},
+      "targets": [
+        {
+          "expr": "sum(tomcat_connections_current_connections{application=~\"lbs-service|business-service\"}) by (application)",
+          "legendFormat": "{{application}}",
+          "datasource": "Prometheus",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 100},
+              {"color": "red", "value": 200}
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {"calcs": ["lastNotNull"]},
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "background"
+      }
+    },
+    {
+      "id": 8,
+      "title": "Load Test RPS",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 6, "y": 24},
+      "targets": [
+        {
+          "expr": "rate(loadtest_requests_total[1m])",
+          "legendFormat": "{{method}} {{endpoint}} {{status}}",
+          "datasource": "Prometheus",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "color": {"mode": "palette-classic"}
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {"mode": "multi"},
+        "legend": {"displayMode": "list", "placement": "bottom"}
+      }
+    },
+    {
+      "id": 9,
+      "title": "Load Test Latency",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 6, "x": 18, "y": 24},
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(loadtest_request_duration_seconds_bucket[1m])) by (le, endpoint))",
+          "legendFormat": "p95 {{endpoint}}",
+          "datasource": "Prometheus",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(loadtest_request_duration_seconds_bucket[1m])) by (le, endpoint))",
+          "legendFormat": "p99 {{endpoint}}",
+          "datasource": "Prometheus",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "color": {"mode": "palette-classic"}
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {"mode": "multi"},
+        "legend": {"displayMode": "list", "placement": "bottom"}
+      }
+    }
+  ]
+}
