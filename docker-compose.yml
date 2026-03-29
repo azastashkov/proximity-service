@@ -1,0 +1,144 @@
+services:
+  nginx:
+    image: nginx:alpine
+    ports: ["80:80"]
+    volumes: [./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro]
+    depends_on:
+      lbs-service: {condition: service_healthy}
+      business-service: {condition: service_healthy}
+    networks: [app-network]
+
+  lbs-service:
+    build: {context: ./lbs-service}
+    deploy: {replicas: 2}
+    environment:
+      DB_HOST: postgres-replica
+      DB_PORT: 5432
+      DB_NAME: proximity_db
+      DB_USER: proximity
+      DB_PASSWORD: proximity
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      postgres-replica: {condition: service_healthy}
+      redis: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks: [app-network]
+
+  business-service:
+    build: {context: ./business-service}
+    deploy: {replicas: 2}
+    environment:
+      DB_HOST: postgres-primary
+      DB_PORT: 5432
+      DB_NAME: proximity_db
+      DB_USER: proximity
+      DB_PASSWORD: proximity
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      postgres-primary: {condition: service_healthy}
+      redis: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8081/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks: [app-network]
+
+  postgres-primary:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: proximity
+      POSTGRES_PASSWORD: proximity
+      POSTGRES_DB: proximity_db
+    ports: ["5432:5432"]
+    volumes:
+      - ./docker/postgres/primary/init-replication.sh:/docker-entrypoint-initdb.d/00-init-replication.sh
+      - ./docker/postgres/primary/init.sql:/docker-entrypoint-initdb.d/01-init.sql
+      - pgdata-primary:/var/lib/postgresql/data
+    command: >
+      postgres
+      -c wal_level=replica
+      -c max_wal_senders=3
+      -c wal_keep_size=256MB
+      -c hot_standby=on
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U proximity"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [app-network]
+
+  postgres-replica:
+    image: postgres:16-alpine
+    environment:
+      PGDATA: /var/lib/postgresql/data
+    ports: ["5433:5432"]
+    volumes:
+      - ./docker/postgres/replica/setup-replica.sh:/setup-replica.sh
+      - pgdata-replica:/var/lib/postgresql/data
+    entrypoint: ["/bin/bash", "/setup-replica.sh"]
+    depends_on:
+      postgres-primary: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U proximity"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [app-network]
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks: [app-network]
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports: ["9090:9090"]
+    volumes: [./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro]
+    depends_on: [nginx]
+    networks: [app-network]
+
+  grafana:
+    image: grafana/grafana:latest
+    ports: ["3000:3000"]
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
+    depends_on: [prometheus]
+    networks: [app-network]
+
+  load-client:
+    build: {context: ./load-test-client}
+    profiles: [test]
+    environment:
+      TARGET_URL: http://nginx:80
+      CONCURRENCY: 50
+      DURATION_SECONDS: 300
+      SEARCH_RATIO: 0.8
+    depends_on:
+      nginx: {condition: service_started}
+    networks: [app-network]
+
+volumes:
+  pgdata-primary:
+  pgdata-replica:
+
+networks:
+  app-network:
+    driver: bridge
