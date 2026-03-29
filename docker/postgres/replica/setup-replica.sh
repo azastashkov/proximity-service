@@ -11,7 +11,9 @@ if [ ! -f "$PGDATA/PG_VERSION" ]; then
     rm -rf "$PGDATA"/*
     PGPASSWORD=replicator_pass pg_basebackup \
         -h postgres-primary -D "$PGDATA" -U replicator -Fp -Xs -P -R
+    chown -R postgres:postgres "$PGDATA"
+    chmod 700 "$PGDATA"
     echo "Base backup complete. Starting replica..."
 fi
 
-exec postgres
+exec gosu postgres postgres
