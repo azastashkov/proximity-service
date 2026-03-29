@@ -1,0 +1,6 @@
+rootProject.name = 'proximity-service'
+
+include 'common'
+include 'lbs-service'
+include 'business-service'
+include 'load-test-client'

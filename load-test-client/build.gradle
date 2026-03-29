@@ -1,0 +1,30 @@
+plugins {
+    id 'application'
+}
+
+application {
+    mainClass = 'com.proximityservice.loadtest.LoadTestApplication'
+}
+
+dependencies {
+    implementation 'io.micrometer:micrometer-registry-prometheus'
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+}
+
+jar {
+    manifest {
+        attributes 'Main-Class': application.mainClass
+    }
+}
+
+tasks.register('fatJar', Jar) {
+    archiveClassifier = 'all'
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    manifest {
+        attributes 'Main-Class': application.mainClass
+    }
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+    with jar
+}
