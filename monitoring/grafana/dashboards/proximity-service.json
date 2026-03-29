@@ -161,12 +161,12 @@
     },
     {
       "id": 7,
-      "title": "Active HTTP Connections",
+      "title": "Tomcat Busy Threads",
       "type": "stat",
       "gridPos": {"h": 4, "w": 6, "x": 0, "y": 24},
       "targets": [
         {
-          "expr": "sum(tomcat_connections_current_connections{application=~\"lbs-service|business-service\"}) by (application)",
+          "expr": "tomcat_threads_busy_threads{application=~\"lbs-service|business-service\"}",
           "legendFormat": "{{application}}",
           "datasource": "Prometheus",
           "refId": "A"
