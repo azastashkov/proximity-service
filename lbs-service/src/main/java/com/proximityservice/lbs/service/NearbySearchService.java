@@ -15,7 +15,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -71,7 +77,8 @@ public class NearbySearchService {
             try {
                 String cached = redisTemplate.opsForValue().get(cacheKey);
                 if (cached != null) {
-                    List<Long> ids = objectMapper.readValue(cached, new TypeReference<List<Long>>() {});
+                    List<Long> ids = objectMapper.readValue(cached, new TypeReference<>() {
+                    });
                     businessIds.addAll(ids);
                     continue;
                 }
